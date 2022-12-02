@@ -2,6 +2,7 @@
 #include <vector> 
 #include <unordered_map>
 #include <fstream>
+#include <sstream>
 using namespace std;
 
 struct edge{
@@ -14,7 +15,7 @@ class graph{
     public:
     unordered_map<string , vector<string>> adjlist;
 
-    void creategraph(vector< edge> &edges){
+    void creategraph(vector<edge> &edges){
 
         for(auto &edge : edges){
             adjlist[edge.src].push_back(edge.dest);
@@ -28,7 +29,7 @@ class graph{
             cout << adjlist[v[i]][j];
             cout << "\t";
         }
-        cout << i << endl;
+        cout << endl;
         
     }
     
@@ -42,64 +43,92 @@ class SearchEngine{
     vector<edge> links;
     graph web;
     unordered_map<string,int> clicks;
+
+
     void getwebpages(string str){
         ifstream Myfile(str);
         string src,dest;
         if(Myfile.is_open()){
-            while(!Myfile.eof()){    
-                Myfile >> src >> dest;
-                int size  = webpages.size();
-                bool exists = false;
-                for(int i = 0 ; i < size ; i++){
-                    if(src == webpages[i]){
-                        exists = true;
+            vector<string> sites;
+            vector<bool> isnode;
+            int node_index = 0;
+            while(!Myfile.eof()){
+                string line;
+                string site;
+                getline(Myfile,line);
+                stringstream ss(line);
+                bool isnode = true;
+                string node;
+
+
+                while(getline(ss,site,',')){
+                    if(isnode){
+                        node = site;
+                        webpages.push_back(site);
+                        isnode = false;
+                    }
+
+                    else{
+                        edge e;
+                        e.src = node;
+                        e.dest = site;
+                        links.push_back(e);
                     }
                 }
-                if(!exists){
-                    webpages.push_back(src);
-                }
-                edge e;
-                e.src = src;
-                if(dest != ""){
-
-                    e.dest = dest;
-                    links.push_back(e);
-                }
-                else{
-                    e.dest = " ";
-                    links.push_back(e);
-                }
-                
             }
+
         }
+
     }
+
 
     void createweb(){
         web.creategraph(links);
     }
 
 
-    void getclicks(string str){
+    unordered_map<string,int> getclicks(string str){
+
+
         ifstream Myfile(str);
-        string site;
+
         int numofclicks;
+
+        unordered_map<string,int> siteclicks;
+
         if(Myfile.is_open()){
+
             while(!Myfile.eof()){
-                Myfile>> site >> numofclicks;
-                if(site != ""){
-                    clicks[site] = numofclicks;
-                    cout << clicks[site] << endl;
+                string line;
+                getline(Myfile,line);
+                stringstream ss(line);
+                string element,site;
+                int clicks ;
+                int index =0;
+                while(getline(ss,element,',')){
+                    if(index == 0){
+                        site = element;
+                        index++;
+                    }
+                    else{
+                        clicks = stoi(element);
+                    }
                 }
+                siteclicks.insert({site,clicks});
+
             }
         }
+
+        return siteclicks;
     }
 
     void updateclicks(string str){
+        clicks = getclicks("file2.csv");
         clicks[str]++;
         int index = 0;
-        ofstream Myfile("file2.txt");
+        ofstream Myfile("file2.csv");
         while(index < webpages.size()){
-            Myfile << webpages[index] << "\t" << clicks[webpages[index]];
+            Myfile << webpages[index] << ',' << clicks[webpages[index]];
             index++;
             if(index == webpages.size()){
                 break;
@@ -112,6 +141,8 @@ class SearchEngine{
     int nodepr(string str){
         return web.adjlist[str].size();
     }
+
+
     vector<string> pointed_at(string str){
         int size = webpages.size();
         vector<string> points_at;
@@ -147,9 +178,9 @@ class SearchEngine{
 
 int main(){
     SearchEngine s;
-    s.getwebpages("file1.txt");
+    s.getwebpages("file1.csv");
     s.createweb();
-    s.web.display(4,s.webpages);
-
+    s.getclicks("file2.csv");
+    s.updateclicks("www.test1.com");
 
 }
